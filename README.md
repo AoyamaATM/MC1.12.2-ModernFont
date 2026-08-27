@@ -112,4 +112,4 @@ SIL Open Font License 1.1 のもとで別途ライセンスされています。
 
 ## リンク
 
-Modrinth:
+Modrinth: https://modrinth.com/mod/aoyamas-modern-font-for-1.12.2
