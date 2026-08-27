@@ -111,5 +111,5 @@ SIL Open Font License 1.1 のもとで別途ライセンスされています。
 詳細は同梱のライセンスファイルを参照してください。
 
 ## リンク
-GitHub: https://github.com/AoyamaATM/MC1.12.2-ModernFont
+
 Modrinth:
