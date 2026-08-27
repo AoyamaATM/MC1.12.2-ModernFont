@@ -1,0 +1,5 @@
+aoyamasmodernfont.chat.custom_font_load_failed=カスタムフォントを読み込めませんでした。
+aoyamasmodernfont.chat.multiple_fonts=複数のカスタムフォントが見つかりました。
+aoyamasmodernfont.chat.multiple_fonts_instruction=fontsフォルダにはフォントを1つだけ配置してください。
+aoyamasmodernfont.chat.font_directory_error=カスタムフォントフォルダを使用できませんでした。
+aoyamasmodernfont.chat.custom_font_fallback=内蔵フォント Source Han Sans JP Medium を使用します。

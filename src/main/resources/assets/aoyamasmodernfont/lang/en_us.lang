@@ -1,0 +1,5 @@
+aoyamasmodernfont.chat.custom_font_load_failed=Failed to load the custom font.
+aoyamasmodernfont.chat.multiple_fonts=Multiple custom fonts were found.
+aoyamasmodernfont.chat.multiple_fonts_instruction=Please place only one font file in the fonts folder.
+aoyamasmodernfont.chat.font_directory_error=The custom font folder could not be used.
+aoyamasmodernfont.chat.custom_font_fallback=The built-in Source Han Sans JP Medium font will be used instead.

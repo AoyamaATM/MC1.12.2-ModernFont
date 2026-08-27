@@ -1,0 +1,43 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# Minecraft / Forge development environment
+run/
+
+# Local Maven repository
+mcmodsrepo/
+
+# Logs / crash reports
+*.log
+logs/
+crash-reports/
+hs_err_pid*
+replay_pid*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Local development instructions
+AGENTS.md
+Aoyama's Modern Font for 1.12.2 実装仕様書.md

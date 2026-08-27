@@ -1,0 +1,18 @@
+[
+  {
+    "modid": "aoyamasmodernfont",
+    "name": "Aoyama's Modern Font for 1.12.2",
+    "description": "A client-side font rendering mod for Minecraft 1.12.2. Replaces Minecraft's standard font rendering with smooth TrueType/OpenType font rendering. Includes Source Han Sans JP Medium as the default font and supports one custom .ttf or .otf font placed in config/aoyamasmodernfont/fonts/.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/AoyamaATM/MC1.12.2-ModernFont",
+    "updateUrl": "",
+    "authorList": [
+      "AoyamaATM"
+    ],
+    "credits": "Default font: Source Han Sans JP by Adobe, distributed under the SIL Open Font License 1.1.",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
