@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import java.awt.Font;
 import java.awt.font.FontRenderContext;
@@ -79,7 +80,7 @@ public class ModernFontRenderer {
     /**
      * Minecraft標準の16色。
      */
-    private static final int[] COLOR_CODES = {
+    private static final int[] BASE_COLOR_CODES = {
             0x000000,
             0x0000AA,
             0x00AA00,
@@ -97,6 +98,12 @@ public class ModernFontRenderer {
             0xFFFF55,
             0xFFFFFF
     };
+
+    /**
+     * 現在のゲーム設定を反映したMinecraft標準16色。
+     */
+    private final int[] colorCodes =
+            new int[16];
 
     /**
      * Glyph情報のキャッシュ。
@@ -139,19 +146,82 @@ public class ModernFontRenderer {
     private final float strikethroughThickness;
 
     /**
+     * Minecraft標準16色を現在のアナグリフ設定に合わせて初期化する。
+     *
+     * @param anaglyph 3Dアナグリフ表示が有効か
+     */
+    private void initializeColorCodes(
+            boolean anaglyph
+    ) {
+
+        for (int i = 0;
+             i < BASE_COLOR_CODES.length;
+             i++) {
+
+            int color =
+                    BASE_COLOR_CODES[i];
+
+            int red =
+                    (color >> 16)
+                            & 0xFF;
+
+            int green =
+                    (color >> 8)
+                            & 0xFF;
+
+            int blue =
+                    color
+                            & 0xFF;
+
+            if (anaglyph) {
+
+                int newRed =
+                        (red * 30
+                                + green * 59
+                                + blue * 11)
+                                / 100;
+
+                int newGreen =
+                        (red * 30
+                                + green * 70)
+                                / 100;
+
+                int newBlue =
+                        (red * 30
+                                + blue * 70)
+                                / 100;
+
+                red = newRed;
+                green = newGreen;
+                blue = newBlue;
+            }
+
+            colorCodes[i] =
+                    (red << 16)
+                            | (green << 8)
+                            | blue;
+        }
+    }
+
+    /**
      * ModernFontRendererを生成する。
      *
      * @param loadedFont FontManagerが読み込んだフォント
      */
     public ModernFontRenderer(
-            Font loadedFont
+            Font loadedFont,
+            boolean anaglyph
     ) {
 
         if (loadedFont == null) {
             throw new IllegalArgumentException(
                     "Font must not be null."
             );
+
         }
+
+        initializeColorCodes(anaglyph);
+
 
         Font glyphFont =
                 loadedFont.deriveFont(
@@ -286,6 +356,39 @@ public class ModernFontRenderer {
 
         atlasTexture.bindTexture();
 
+        boolean blendWasEnabled =
+                GL11.glIsEnabled(
+                        GL11.GL_BLEND
+                );
+
+        boolean textureWasEnabled =
+                GL11.glIsEnabled(
+                        GL11.GL_TEXTURE_2D
+                );
+
+        GlStateManager.enableTexture2D();
+        GlStateManager.enableAlpha();
+
+        int previousBlendSrcRgb =
+                GL11.glGetInteger(
+                        GL14.GL_BLEND_SRC_RGB
+                );
+
+        int previousBlendDstRgb =
+                GL11.glGetInteger(
+                        GL14.GL_BLEND_DST_RGB
+                );
+
+        int previousBlendSrcAlpha =
+                GL11.glGetInteger(
+                        GL14.GL_BLEND_SRC_ALPHA
+                );
+
+        int previousBlendDstAlpha =
+                GL11.glGetInteger(
+                        GL14.GL_BLEND_DST_ALPHA
+                );
+
         GlStateManager.enableBlend();
 
         GlStateManager.tryBlendFuncSeparate(
@@ -350,7 +453,7 @@ public class ModernFontRenderer {
 
                     int formattedColor =
                             (alpha << 24)
-                                    | COLOR_CODES[colorIndex];
+                                    | colorCodes[colorIndex];
 
                     currentColor =
                             shadow
@@ -556,14 +659,19 @@ public class ModernFontRenderer {
             cursorX += glyphAdvance;
         }
 
-        GlStateManager.disableBlend();
-
-        GlStateManager.color(
-                1.0F,
-                1.0F,
-                1.0F,
-                1.0F
+        GlStateManager.tryBlendFuncSeparate(
+                previousBlendSrcRgb,
+                previousBlendDstRgb,
+                previousBlendSrcAlpha,
+                previousBlendDstAlpha
         );
+
+        if (!blendWasEnabled) {
+            GlStateManager.disableBlend();
+        }
+        if (!textureWasEnabled) {
+            GlStateManager.disableTexture2D();
+        }
     }
 
     /**
@@ -671,7 +779,7 @@ public class ModernFontRenderer {
             int color
     ) {
 
-        if ((color & 0xFF000000) == 0) {
+        if ((color & 0xFC000000) == 0) {
 
             return 0xFF000000
                     | color;
@@ -918,6 +1026,57 @@ public class ModernFontRenderer {
      * @return 表示幅
      */
     public float getStringWidth(
+            String text
+    ) {
+
+        if (text == null || text.isEmpty()) {
+            return 0.0F;
+        }
+
+        float width = 0.0F;
+
+        boolean bold = false;
+
+        int[] codePoints =
+                text.codePoints().toArray();
+
+        for (int i = 0; i < codePoints.length; i++) {
+
+            int codePoint =
+                    codePoints[i];
+
+            if (codePoint == '§'
+                    && i + 1 < codePoints.length) {
+
+                char formatCode =
+                        Character.toLowerCase(
+                                (char) codePoints[++i]
+                        );
+
+                if (formatCode == 'l') {
+                    bold = true;
+                    continue;
+                }
+
+                if (formatCode == 'r') {
+                    bold = false;
+                    continue;
+                }
+
+                continue;
+            }
+
+            width +=
+                    getCodePointWidth(
+                            codePoint,
+                            bold
+                    );
+        }
+
+        return width;
+    }
+
+    public float getRendererStringWidth(
             String text
     ) {
 

@@ -1,5 +1,6 @@
 package com.aoyama.modernfont.font.renderer;
 
+import com.aoyama.modernfont.font.glyph.GlyphAtlas;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.client.settings.GameSettings;
@@ -90,11 +91,13 @@ public class AoyamaFontRenderer extends FontRenderer {
      */
     @Override
     public int drawString(
-            @Nonnull String text,
+            String text,
             int x,
             int y,
             int color
     ) {
+
+        if (text == null) {return 0;}
 
         if (requiresVanillaFallback(text)) {
 
@@ -116,16 +119,37 @@ public class AoyamaFontRenderer extends FontRenderer {
             }
         }
 
-        modernFontRenderer.drawString(
-                text,
-                x,
-                y + VANILLA_Y_OFFSET,
-                color
-        );
+        try {
+
+            modernFontRenderer.drawString(
+                    text,
+                    x,
+                    y + VANILLA_Y_OFFSET,
+                    color
+            );
+
+        } catch (GlyphAtlas.AtlasFullException e) {
+
+            modernAtlasFull = true;
+            beginVanillaMetrics();
+
+            try {
+                return super.drawString(
+                        text,
+                        (float) x,
+                        (float) y,
+                        color,
+                        false
+                );
+            } finally {
+                endVanillaMetrics();
+            }
+        }
 
         return getModernEndPosition(
                 text,
-                x
+                x,
+                false
         );
     }
 
@@ -141,12 +165,14 @@ public class AoyamaFontRenderer extends FontRenderer {
      */
     @Override
     public int drawString(
-            @Nonnull String text,
+            String text,
             float x,
             float y,
             int color,
             boolean dropShadow
     ) {
+
+        if (text == null) {return 0;}
 
         if (requiresVanillaFallback(text)) {
 
@@ -171,28 +197,49 @@ public class AoyamaFontRenderer extends FontRenderer {
         float adjustedY =
                 y + VANILLA_Y_OFFSET;
 
-        if (dropShadow) {
+        try {
 
-            modernFontRenderer.drawStringWithShadow(
-                    text,
-                    x,
-                    adjustedY,
-                    color
-            );
+            if (dropShadow) {
 
-        } else {
+                modernFontRenderer.drawStringWithShadow(
+                        text,
+                        x,
+                        adjustedY,
+                        color
+                );
 
-            modernFontRenderer.drawString(
-                    text,
-                    x,
-                    adjustedY,
-                    color
-            );
+            } else {
+
+                modernFontRenderer.drawString(
+                        text,
+                        x,
+                        adjustedY,
+                        color
+                );
+            }
+
+        } catch (GlyphAtlas.AtlasFullException e) {
+
+            modernAtlasFull = true;
+            beginVanillaMetrics();
+
+            try {
+                return super.drawString(
+                        text,
+                        x,
+                        y,
+                        color,
+                        dropShadow
+                );
+            } finally {
+                endVanillaMetrics();
+            }
         }
 
         return getModernEndPosition(
                 text,
-                x
+                x,
+                dropShadow
         );
     }
 
@@ -207,11 +254,13 @@ public class AoyamaFontRenderer extends FontRenderer {
      */
     @Override
     public int drawStringWithShadow(
-            @Nonnull String text,
+            String text,
             float x,
             float y,
             int color
     ) {
+
+        if (text == null) {return 0;}
 
         if (requiresVanillaFallback(text)) {
 
@@ -237,16 +286,37 @@ public class AoyamaFontRenderer extends FontRenderer {
             }
         }
 
-        modernFontRenderer.drawStringWithShadow(
-                text,
-                x,
-                y + VANILLA_Y_OFFSET,
-                color
-        );
+        try {
+
+            modernFontRenderer.drawStringWithShadow(
+                    text,
+                    x,
+                    y + VANILLA_Y_OFFSET,
+                    color
+            );
+
+        } catch (GlyphAtlas.AtlasFullException e) {
+
+            modernAtlasFull = true;
+            beginVanillaMetrics();
+
+            try {
+                return super.drawString(
+                        text,
+                        x,
+                        y,
+                        color,
+                        true
+                );
+            } finally {
+                endVanillaMetrics();
+            }
+        }
 
         return getModernEndPosition(
                 text,
-                x
+                x,
+                true
         );
     }
 
@@ -258,8 +328,12 @@ public class AoyamaFontRenderer extends FontRenderer {
      */
     @Override
     public int getStringWidth(
-            @Nonnull String text
+            String text
     ) {
+
+        if (text == null) {
+            return 0;
+        }
 
         if (requiresVanillaFallback(text)) {
 
@@ -277,10 +351,8 @@ public class AoyamaFontRenderer extends FontRenderer {
             }
         }
 
-        return Math.round(
-                modernFontRenderer.getStringWidth(
-                        text
-                )
+        return (int) modernFontRenderer.getStringWidth(
+                text
         );
     }
 
@@ -307,11 +379,46 @@ public class AoyamaFontRenderer extends FontRenderer {
         }
 
         /*
+         * Glyph Atlas満杯後は描画もVanillaへ切り替わるため、
+         * 単文字の幅計算もVanillaへ統一する。
+         */
+        if (modernAtlasFull) {
+
+            return super.getCharWidth(
+                    character
+            );
+        }
+
+        /*
          * Minecraftの書式開始記号。
          * Vanilla FontRendererも-1を返す。
          */
         if (character == '§') {
             return -1;
+        }
+
+        /*
+         * NBSP（U+00A0）はVanilla FontRendererで
+         * 通常文字とは異なる特殊な幅処理を行うため、
+         * Vanilla側へフォールバックする。
+         */
+        if (character == '\u00A0') {
+
+            return super.getCharWidth(
+                    character
+            );
+        }
+
+        /*
+         * 制御文字はVanilla側の幅処理を使用する。
+         */
+        if (Character.isISOControl(
+                character
+        )) {
+
+            return super.getCharWidth(
+                    character
+            );
         }
 
         /*
@@ -606,7 +713,7 @@ public class AoyamaFontRenderer extends FontRenderer {
                 );
 
                 bold =
-                        updateBoldState(
+                        updateTrimBoldState(
                                 bold,
                                 formatCode
                         );
@@ -651,7 +758,12 @@ public class AoyamaFontRenderer extends FontRenderer {
 
     /**
      * 末尾側を残す形で指定幅まで切り詰める。
-     * テキストフィールドなどの横スクロール用途を想定する。
+     *
+     * 書式状態は前方から解析して各文字位置で確定し、
+     * 文字列末尾から逆方向へ幅を積算する。
+     *
+     * §書式コードは幅を持たないトークンとして扱い、
+     * コード途中では切断しない。
      *
      * @param text 対象文字列
      * @param width 最大幅
@@ -662,45 +774,93 @@ public class AoyamaFontRenderer extends FontRenderer {
             int width
     ) {
 
-        if (getStringWidth(text) <= width) {
-            return text;
+        if (width <= 0 || text.isEmpty()) {
+            return "";
         }
 
-        int start = 0;
+        /*
+         * 各UTF-16位置の文字に適用される太字状態を、
+         * 前方から解析して記録する。
+         */
+        boolean[] boldAtOffset =
+                buildTrimBoldStateMap(
+                        text
+                );
 
-        while (start < text.length()) {
+        StringBuilder builder =
+                new StringBuilder();
 
-            int nextStart =
-                    getNextTokenEnd(
-                            text,
-                            start
-                    );
+        float currentWidth =
+                0.0F;
 
-            String formatPrefix =
-                    FontRenderer.getFormatFromString(
-                            text.substring(
-                                    0,
-                                    nextStart
-                            )
-                    );
+        int offset =
+                text.length();
 
-            String candidate =
-                    formatPrefix
-                            + text.substring(
-                            nextStart
-                    );
+        while (offset > 0) {
 
-            if (getStringWidth(candidate)
-                    <= width) {
+            /*
+             * 現在位置の直前が§書式コードなら、
+             * 2文字を1トークンとしてそのまま残す。
+             *
+             * 書式コード自体は表示幅を持たない。
+             */
+            if (offset >= 2
+                    && text.charAt(offset - 2) == '§') {
 
-                return candidate;
+                builder.insert(
+                        0,
+                        text.substring(
+                                offset - 2,
+                                offset
+                        )
+                );
+
+                offset -= 2;
+
+                continue;
             }
 
-            start =
-                    nextStart;
+            int codePoint =
+                    text.codePointBefore(
+                            offset
+                    );
+
+            int codePointLength =
+                    Character.charCount(
+                            codePoint
+                    );
+
+            int start =
+                    offset - codePointLength;
+
+            float characterWidth =
+                    modernFontRenderer.getCodePointWidth(
+                            codePoint,
+                            boldAtOffset[start]
+                    );
+
+            if (currentWidth + characterWidth
+                    > width) {
+
+                break;
+            }
+
+            builder.insert(
+                    0,
+                    text.substring(
+                            start,
+                            offset
+                    )
+            );
+
+            currentWidth +=
+                    characterWidth;
+
+            offset =
+                    start;
         }
 
-        return "";
+        return builder.toString();
     }
 
     /**
@@ -752,7 +912,8 @@ public class AoyamaFontRenderer extends FontRenderer {
              * 先頭が改行の場合。
              */
             if (breakIndex == 0
-                    && remaining.charAt(0) == '\n') {
+                    && (remaining.charAt(0) == '\n'
+                    || remaining.charAt(0) == ' ')) {
 
                 lines.add("");
 
@@ -861,23 +1022,33 @@ public class AoyamaFontRenderer extends FontRenderer {
                         offset;
             }
 
-            if (first == '§'
-                    && offset + 1 < text.length()) {
+            if (first == '§') {
 
-                char formatCode =
-                        Character.toLowerCase(
-                                text.charAt(
-                                        offset + 1
-                                )
-                        );
+                if (offset + 1 < text.length()) {
 
-                bold =
-                        updateBoldState(
-                                bold,
-                                formatCode
-                        );
+                    char formatCode =
+                            Character.toLowerCase(
+                                    text.charAt(
+                                            offset + 1
+                                    )
+                            );
 
-                offset += 2;
+                    bold =
+                            updateWrapBoldState(
+                                    bold,
+                                    formatCode
+                            );
+
+                    offset += 2;
+
+                } else {
+
+                    /*
+                     * 末尾の単独§もVanilla同様、
+                     * 表示幅を持たない書式開始記号として扱う。
+                     */
+                    offset++;
+                }
 
                 continue;
             }
@@ -932,6 +1103,76 @@ public class AoyamaFontRenderer extends FontRenderer {
         return text.length();
     }
 
+
+    /**
+     * trim処理用に、各UTF-16位置で有効な太字状態を構築する。
+     *
+     * §書式コードは表示文字ではないため、
+     * 次の表示文字から状態を反映する。
+     *
+     * @param text 対象文字列
+     * @return 各文字位置で有効な太字状態
+     */
+    private boolean[] buildTrimBoldStateMap(
+            String text
+    ) {
+
+        boolean[] boldAtOffset =
+                new boolean[
+                        text.length() + 1
+                        ];
+
+        boolean bold =
+                false;
+
+        int offset =
+                0;
+
+        while (offset < text.length()) {
+
+            char first =
+                    text.charAt(
+                            offset
+                    );
+
+            if (first == '§'
+                    && offset + 1 < text.length()) {
+
+                char formatCode =
+                        Character.toLowerCase(
+                                text.charAt(
+                                        offset + 1
+                                )
+                        );
+
+                bold =
+                        updateTrimBoldState(
+                                bold,
+                                formatCode
+                        );
+
+                offset += 2;
+
+                continue;
+            }
+
+            boldAtOffset[offset] =
+                    bold;
+
+            int codePoint =
+                    text.codePointAt(
+                            offset
+                    );
+
+            offset +=
+                    Character.charCount(
+                            codePoint
+                    );
+        }
+
+        return boldAtOffset;
+    }
+
     /**
      * 書式コードによって太字状態を更新する。
      *
@@ -939,7 +1180,23 @@ public class AoyamaFontRenderer extends FontRenderer {
      * @param formatCode Minecraft書式コード
      * @return 更新後の太字状態
      */
-    private boolean updateBoldState(
+    private boolean updateTrimBoldState(
+            boolean currentBold,
+            char formatCode
+    ) {
+
+        if (formatCode == 'l') {
+            return true;
+        }
+
+        if (formatCode == 'r') {
+            return false;
+        }
+
+        return currentBold;
+    }
+
+    private boolean updateWrapBoldState(
             boolean currentBold,
             char formatCode
     ) {
@@ -1038,8 +1295,34 @@ public class AoyamaFontRenderer extends FontRenderer {
         return result;
     }
 
+
     /**
-     * 文字列に現在のModern Fontでは表示できない文字が含まれるか確認する。
+     * Modern Font側で互換処理できるMinecraft書式コードか確認する。
+     *
+     * @param formatCode 書式コード
+     * @return 対応済みならtrue
+     */
+    private boolean isSupportedModernFormatCode(
+            char formatCode
+    ) {
+
+        if (isColorCode(formatCode)) {
+            return true;
+        }
+
+        return formatCode == 'l'
+                || formatCode == 'm'
+                || formatCode == 'n'
+                || formatCode == 'o'
+                || formatCode == 'r';
+    }
+
+
+    /**
+     * 現在のModern Fontでは互換描画できない文字列か確認する。
+     * Bidi描画が有効な場合、または現在のフォントで表示できない文字を含む場合は
+     * Minecraft標準FontRendererへフォールバックする。
+     *
      * Minecraftの§書式コードは表示文字ではないため判定対象から除外する。
      *
      * @param text 判定する文字列
@@ -1049,6 +1332,12 @@ public class AoyamaFontRenderer extends FontRenderer {
             String text
     ) {
 
+        if (modernAtlasFull) {
+            return true;
+        }
+
+        if (getBidiFlag()) {return true;}
+
         int[] codePoints =
                 text.codePoints().toArray();
 
@@ -1057,19 +1346,58 @@ public class AoyamaFontRenderer extends FontRenderer {
             int codePoint =
                     codePoints[i];
 
-            if (codePoint == '§'
-                    && i + 1 < codePoints.length) {
+            if (codePoint == '§') {
+
+                /*
+                 * 末尾の単独§はVanilla FontRendererで
+                 * 特殊な挙動になるためフォールバックする。
+                 */
+                if (i + 1 >= codePoints.length) {
+                    return true;
+                }
+
+                char formatCode =
+                        Character.toLowerCase(
+                                (char) codePoints[i + 1]
+                        );
+
+                /*
+                 * §k（難読化）はModern Font側で未実装のため、
+                 * Minecraft標準FontRendererへフォールバックする。
+                 */
+                if (formatCode == 'k') {
+                    return true;
+                }
+
+                /*
+                 * Modern Font側で認識していない書式コードは、
+                 * Vanillaとの挙動差を避けるためフォールバックする。
+                 */
+                if (!isSupportedModernFormatCode(
+                        formatCode
+                )) {
+
+                    return true;
+                }
 
                 i++;
 
                 continue;
             }
 
+            /*
+             * NBSPはVanilla独自の幅処理を持つため、
+             * 文字列全体をVanillaへフォールバックする。
+             */
+            if (codePoint == 0x00A0) {
+                return true;
+            }
+
             if (Character.isISOControl(
                     codePoint
             )) {
 
-                continue;
+                return true;
             }
 
             if (!modernFontRenderer.canDisplay(
@@ -1085,21 +1413,45 @@ public class AoyamaFontRenderer extends FontRenderer {
 
     /**
      * Modern Fontで描画した場合の終了X座標を取得する。
+     * Vanilla FontRendererと同様に整数化し、
+     * 影付き描画では影側の終了位置も考慮する。
      *
      * @param text 描画した文字列
      * @param startX 描画開始X座標
+     * @param dropShadow 影を付けるか
      * @return 描画終了位置
      */
     private int getModernEndPosition(
             String text,
-            float startX
+            float startX,
+            boolean dropShadow
     ) {
 
-        return Math.round(
-                startX
-                        + modernFontRenderer.getStringWidth(
+        float width =
+                modernFontRenderer.getRendererStringWidth(
                         text
-                )
+                );
+
+        int normalEnd =
+                (int) (
+                        startX
+                                + width
+                );
+
+        if (!dropShadow) {
+            return normalEnd;
+        }
+
+        int shadowEnd =
+                (int) (
+                        startX
+                                + 1.0F
+                                + width
+                );
+
+        return Math.max(
+                shadowEnd,
+                normalEnd
         );
     }
 
@@ -1120,4 +1472,10 @@ public class AoyamaFontRenderer extends FontRenderer {
             vanillaMetricsDepth--;
         }
     }
+
+    /**
+     * Glyph Atlasが満杯になり、
+     * Modern Font描画を継続できなくなったか。
+     */
+    private boolean modernAtlasFull = false;
 }

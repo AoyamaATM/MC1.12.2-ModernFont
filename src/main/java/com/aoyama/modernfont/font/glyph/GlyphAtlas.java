@@ -19,12 +19,12 @@ public class GlyphAtlas {
     /**
      * Atlasの横幅。
      */
-    private static final int ATLAS_WIDTH = 1024;
+    private static final int ATLAS_WIDTH = 2048;
 
     /**
      * Atlasの高さ。
      */
-    private static final int ATLAS_HEIGHT = 1024;
+    private static final int ATLAS_HEIGHT = 2048;
 
     /**
      * Glyph同士が隣接しすぎないように入れる余白。
@@ -193,9 +193,7 @@ public class GlyphAtlas {
                 + PADDING
                 > ATLAS_HEIGHT) {
 
-            throw new IllegalStateException(
-                    "Glyph Atlas is full."
-            );
+            throw new AtlasFullException();
         }
 
         /*
@@ -411,5 +409,16 @@ public class GlyphAtlas {
      */
     public void clearDirty() {
         dirty = false;
+    }
+
+    /**
+     * Glyph Atlasに新しいGlyphを配置できなくなった場合の例外。
+     */
+    public static class AtlasFullException
+            extends IllegalStateException {
+
+        public AtlasFullException() {
+            super("Glyph Atlas is full.");
+        }
     }
 }

@@ -12,13 +12,13 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class ClientGuiEventHandler {
 
     /**
-     * 最初のGUI描画時にFontRendererを一度だけ差し替える。
+     * 最初のGUI描画前にFontRendererを一度だけ差し替える。
      *
      * @param event GUI描画イベント
      */
     @SubscribeEvent
     public void onDrawScreen(
-            GuiScreenEvent.DrawScreenEvent.Post event
+            GuiScreenEvent.DrawScreenEvent.Pre event
     ) {
 
         /*

@@ -174,48 +174,38 @@ public class GlyphAtlasTexture {
         int height =
                 glyphAtlas.getHeight();
 
-        /*
-         * BufferedImageからARGBピクセルを取得。
-         */
-        int[] imagePixels =
-                atlasImage.getRGB(
-                        0,
-                        0,
-                        width,
-                        height,
-                        null,
-                        0,
-                        width
-                );
-
-        /*
-         * DynamicTexture内部のピクセル配列。
-         */
         int[] texturePixels =
                 dynamicTexture.getTextureData();
 
+        int requiredPixelCount =
+                width * height;
+
         /*
-         * 念のためサイズ確認。
+         * OptiFine系ではDynamicTexture内部配列が
+         *通常より大きい場合がある。
+         *
+         * Atlas画像を格納できる容量があれば問題ない。
          */
-        if (imagePixels.length
-                != texturePixels.length) {
+        if (texturePixels.length
+                < requiredPixelCount) {
 
             throw new IllegalStateException(
-                    "Glyph Atlas texture size mismatch."
+                    "Glyph Atlas texture buffer is too small."
             );
         }
 
         /*
-         * Atlas画像
-         * ↓
-         * DynamicTexture
+         * Atlas画像をDynamicTextureの
+         * ピクセル配列へ直接書き込む。
          */
-        System.arraycopy(
-                imagePixels,
+        atlasImage.getRGB(
                 0,
+                0,
+                width,
+                height,
                 texturePixels,
                 0,
-                imagePixels.length
+                width
         );
     }
 

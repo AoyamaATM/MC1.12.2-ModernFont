@@ -85,8 +85,11 @@ Aoyama's Modern Font はMinecraftのクライアント側 FontRenderer を
 置き換えながら、一般的なFontRendererの処理との互換性を維持するよう
 設計しています。
 
-Nomifactory CEuを含む、大規模なMinecraft 1.12.2 MOD環境でも
+Nomifactory CEu 1.7.7を含む、大規模なMinecraft 1.12.2 MOD環境でも
 動作確認を行っています。
+
+v1.0.1では、Vanilla FontRendererとの互換性や
+他MODからの文字描画・文字幅取得に対する互換処理を強化しています。
 
 ただし、すべてのMODとの完全な互換性を保証するものではありません。
 
@@ -111,5 +114,5 @@ SIL Open Font License 1.1 のもとで別途ライセンスされています。
 詳細は同梱のライセンスファイルを参照してください。
 
 ## リンク
-
-Modrinth: https://modrinth.com/mod/aoyamas-modern-font-for-1.12.2
+GitHub: https://github.com/AoyamaATM/MC1.12.2-ModernFont
+Modrinth: https://modrinth.com/mod/aoyamas-modern-font-for-1.12.2 (審査中)

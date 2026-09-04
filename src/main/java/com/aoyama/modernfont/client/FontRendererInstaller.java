@@ -5,6 +5,9 @@ import com.aoyama.modernfont.font.FontManager;
 import com.aoyama.modernfont.font.renderer.AoyamaFontRenderer;
 import com.aoyama.modernfont.font.renderer.ModernFontRenderer;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.resources.IReloadableResourceManager;
+import net.minecraft.client.resources.IResourceManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -61,21 +64,48 @@ public final class FontRendererInstaller {
 
         ModernFontRenderer modernFontRenderer =
                 new ModernFontRenderer(
-                        fontManager.getLoadedFont()
+                        fontManager.getLoadedFont(),
+                        minecraft.gameSettings.anaglyph
                 );
 
         /*
          * Minecraft 1.12.2ではfontRendererが
          * publicかつ書き換え可能なので直接差し替える。
          *
-         * 一時変数を作らず、そのまま代入する。
+         * 差し替え前のFontRendererから
+         * Unicode/Bidi状態を新しいレンダラーへ引き継ぐ。
          */
-        minecraft.fontRenderer =
+        FontRenderer previousFontRenderer =
+                minecraft.fontRenderer;
+
+        AoyamaFontRenderer aoyamaFontRenderer =
                 new AoyamaFontRenderer(
                         minecraft.gameSettings,
                         minecraft.getTextureManager(),
                         modernFontRenderer
                 );
+
+        aoyamaFontRenderer.setUnicodeFlag(
+                previousFontRenderer.getUnicodeFlag()
+        );
+
+        aoyamaFontRenderer.setBidiFlag(
+                previousFontRenderer.getBidiFlag()
+        );
+
+        minecraft.fontRenderer =
+                aoyamaFontRenderer;
+
+        IResourceManager resourceManager =
+                minecraft.getResourceManager();
+
+        if (resourceManager instanceof IReloadableResourceManager) {
+
+            ((IReloadableResourceManager) resourceManager)
+                    .registerReloadListener(
+                            aoyamaFontRenderer
+                    );
+        }
 
         installed = true;
 
